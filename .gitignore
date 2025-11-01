@@ -1,0 +1,7 @@
+node_modules
+images/*.tar
+.env*
+.vscode
+.DS_Store
+/dist
+/build

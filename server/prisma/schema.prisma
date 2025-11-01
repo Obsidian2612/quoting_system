@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Vehicle {
+  id      Int      @id @default(autoincrement())
+  make    String
+  model   String
+  year    Int
+  engine  String?
+  quotes  Quote[]
+  
+  @@map("vehicles")
+}
+
+model Quote {
+  id          Int          @id @default(autoincrement())
+  vehicleId   Int
+  date        DateTime     @default(now())
+  totalPrice  Float
+  vehicle     Vehicle      @relation(fields: [vehicleId], references: [id])
+  items       QuoteItem[]
+  
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          Int      @id @default(autoincrement())
+  quoteId     Int
+  serviceId   Int
+  price       Float
+  quote       Quote    @relation(fields: [quoteId], references: [id])
+  service     Service  @relation(fields: [serviceId], references: [id])
+  
+  @@map("quote_items")
+}
+
+model Service {
+  id          Int          @id @default(autoincrement())
+  name        String
+  category    String
+  prices      Price[]
+  quoteItems  QuoteItem[]
+  
+  @@map("services")
+}
+
+model Price {
+  id          Int       @id @default(autoincrement())
+  serviceId   Int
+  price       Float
+  supplierId  Int
+  date        DateTime  @default(now())
+  service     Service   @relation(fields: [serviceId], references: [id])
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  
+  @@map("prices")
+}
+
+model Supplier {
+  id            Int      @id @default(autoincrement())
+  name          String
+  contactInfo   String?
+  prices        Price[]
+  
+  @@map("suppliers")
+}
+
+model Admin {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  passwordHash  String
+  
+  @@map("admins")
+}
