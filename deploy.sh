@@ -5,21 +5,9 @@ set -e
 
 echo "🚀 Starting deployment of Engineering Enterprise Motors Quote System..."
 
-# Check if .env.production exists
-if [ ! -f .env.production ]; then
-    echo "❌ Error: .env.production file not found!"
-    exit 1
-fi
-
-# Load Docker images
-echo "📦 Loading Docker images..."
-docker load -i ./images/frontend.tar
-docker load -i ./images/backend.tar
-docker load -i ./images/postgres.tar
-
-# Copy environment file
-echo "📄 Setting up environment variables..."
-cp .env.production .env
+# Pull latest images
+echo "� Pulling latest Docker images..."
+docker-compose -f docker-compose.prod.yml pull
 
 # Create necessary directories
 echo "📁 Creating data directories..."
@@ -27,7 +15,9 @@ mkdir -p postgres-data
 
 # Start the application
 echo "🚀 Starting the application..."
-docker-compose up -d
+docker-compose -f docker-compose.prod.yml up -d
+
+echo "✅ Deployment complete!"
 
 # Wait for the database to be ready
 echo "⏳ Waiting for database to be ready..."
