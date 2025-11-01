@@ -3,10 +3,17 @@ FROM node:18-alpine as builder
 
 WORKDIR /app
 
+# Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
+# Copy source
 COPY . .
+
+# Set environment for build
+ENV VITE_API_URL=http://localhost:4000
+
+# Build application
 RUN npm run build
 
 # Stage 2: Production
