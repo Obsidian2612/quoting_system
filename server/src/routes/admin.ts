@@ -43,6 +43,7 @@ router.post('/login',
 
       res.json({ token });
     } catch (error) {
+      console.error('Admin login failed:', error);
       res.status(500).json({ error: 'Login failed' });
     }
   }
@@ -83,6 +84,7 @@ router.post('/',
         username: admin.username
       });
     } catch (error) {
+      console.error('Create admin failed:', error);
       res.status(500).json({ error: 'Failed to create admin' });
     }
   }
