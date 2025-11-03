@@ -88,4 +88,76 @@ router.post('/',
   }
 );
 
+  // Get settings (LLM URL and enabled flag)
+  router.get('/settings', auth, async (req, res) => {
+    try {
+      const settings = await prisma.setting.findMany();
+      const result: Record<string, string> = {};
+      settings.forEach(s => (result[s.key] = s.value));
+      res.json({ llmUrl: result['LLM_URL'] || '', llmEnabled: result['LLM_ENABLED'] === 'true' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+  });
+
+  // Update settings (LLM URL and enabled flag)
+  router.post('/settings', auth, async (req, res) => {
+    try {
+      const { llmUrl, llmEnabled } = req.body;
+
+      if (typeof llmUrl === 'string') {
+        await prisma.setting.upsert({
+          where: { key: 'LLM_URL' },
+          update: { value: llmUrl },
+          create: { key: 'LLM_URL', value: llmUrl }
+        });
+      }
+
+      if (typeof llmEnabled === 'boolean') {
+        await prisma.setting.upsert({
+          where: { key: 'LLM_ENABLED' },
+          update: { value: llmEnabled ? 'true' : 'false' },
+          create: { key: 'LLM_ENABLED', value: llmEnabled ? 'true' : 'false' }
+        });
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  });
+
+  // Proxy to configured LLM endpoint. Requires auth.
+  router.post('/llm/proxy', auth, async (req, res) => {
+    try {
+      const prompt = req.body.prompt;
+      if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+
+      const llm = await prisma.setting.findUnique({ where: { key: 'LLM_URL' } });
+      const enabled = await prisma.setting.findUnique({ where: { key: 'LLM_ENABLED' } });
+
+      if (!llm || !enabled || enabled.value !== 'true') {
+        return res.status(400).json({ error: 'LLM not configured or disabled' });
+      }
+
+      // Forward the request body to the LLM URL
+      const response = await fetch(llm.value, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body)
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const json = await response.json();
+        return res.json(json);
+      }
+
+      const text = await response.text();
+      res.send(text);
+    } catch (error) {
+      res.status(500).json({ error: 'LLM proxy failed' });
+    }
+  });
+
 export default router;

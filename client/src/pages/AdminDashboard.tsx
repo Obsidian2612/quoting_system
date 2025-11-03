@@ -17,13 +17,26 @@ const AdminDashboard: React.FC = () => {
   const [llmUrl, setLlmUrl] = useState('');
   const [llmEnabled, setLlmEnabled] = useState(false);
 
+  // Load settings from backend when authenticated
   useEffect(() => {
-    // Load settings from localStorage
-    const stored = localStorage.getItem('LLM_URL') || '';
-    const enabled = localStorage.getItem('LLM_ENABLED') === 'true';
-    setLlmUrl(stored);
-    setLlmEnabled(enabled);
-  }, []);
+    const loadSettings = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch('/api/admin/settings', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        setLlmUrl(json.llmUrl || '');
+        setLlmEnabled(!!json.llmEnabled);
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    if (isAuthenticated) loadSettings();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -379,10 +392,22 @@ const AdminDashboard: React.FC = () => {
             <div className="mt-4 flex gap-2">
               <button
                 className="btn btn-primary"
-                onClick={() => {
-                  localStorage.setItem('LLM_URL', llmUrl);
-                  localStorage.setItem('LLM_ENABLED', llmEnabled ? 'true' : 'false');
-                  setError('');
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify({ llmUrl, llmEnabled })
+                    });
+                    if (!res.ok) throw new Error('Save failed');
+                    setError('');
+                  } catch (err) {
+                    setError('Failed to save settings');
+                  }
                 }}
               >
                 Save Settings
@@ -390,11 +415,24 @@ const AdminDashboard: React.FC = () => {
 
               <button
                 className="btn btn-secondary"
-                onClick={() => {
-                  setLlmUrl('');
-                  setLlmEnabled(false);
-                  localStorage.removeItem('LLM_URL');
-                  localStorage.removeItem('LLM_ENABLED');
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify({ llmUrl: '', llmEnabled: false })
+                    });
+                    if (!res.ok) throw new Error('Reset failed');
+                    setLlmUrl('');
+                    setLlmEnabled(false);
+                    setError('');
+                  } catch (err) {
+                    setError('Failed to reset settings');
+                  }
                 }}
               >
                 Reset

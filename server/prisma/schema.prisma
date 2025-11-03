@@ -78,3 +78,11 @@ model Admin {
   
   @@map("admins")
 }
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+
+  @@map("settings")
+}

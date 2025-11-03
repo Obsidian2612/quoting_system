@@ -228,9 +228,14 @@ const QuoteBuilder: React.FC = () => {
                         const prompt = `Given the context: "I have a vehicle with limited info. Provide make, model, year (4-digit), and engine if possible. If unknown, return empty strings." Return JSON with keys make, model, year, engine.`;
 
                         try {
-                          const res = await fetch(llmUrl, {
+                          // Call backend proxy which will forward to configured LLM
+                          const token = localStorage.getItem('token');
+                          const res = await fetch('/api/admin/llm/proxy', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(token ? { Authorization: `Bearer ${token}` } : {})
+                            },
                             body: JSON.stringify({ prompt })
                           });
 
