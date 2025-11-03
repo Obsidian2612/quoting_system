@@ -103,9 +103,13 @@ router.post('/',
   // Update settings (LLM URL and enabled flag)
   router.post('/settings', auth, async (req, res) => {
     try {
+      console.log('Received settings update:', req.body);
       const { llmUrl, llmEnabled } = req.body;
 
+      console.log('Processing settings:', { llmUrl, llmEnabled, types: { llmUrl: typeof llmUrl, llmEnabled: typeof llmEnabled } });
+
       if (typeof llmUrl === 'string') {
+        console.log('Updating LLM_URL');
         await prisma.setting.upsert({
           where: { key: 'LLM_URL' },
           update: { value: llmUrl },
@@ -114,6 +118,7 @@ router.post('/',
       }
 
       if (typeof llmEnabled === 'boolean') {
+        console.log('Updating LLM_ENABLED');
         await prisma.setting.upsert({
           where: { key: 'LLM_ENABLED' },
           update: { value: llmEnabled ? 'true' : 'false' },
@@ -123,7 +128,11 @@ router.post('/',
 
       res.status(200).json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to update settings' });
+      console.error('Settings update failed:', error);
+      res.status(500).json({ 
+        error: 'Failed to update settings',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
