@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Vehicle, Service, Quote, Supplier } from '../types';
 
-const API_URL = 'http://localhost:4000/api';
+// Use same-origin relative path so the frontend can call the backend via nginx proxy at /api
+const API_URL = '/api';
 
 export const api = {
   // Vehicle endpoints
