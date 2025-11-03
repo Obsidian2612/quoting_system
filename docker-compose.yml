@@ -15,6 +15,9 @@ services:
       - "4000:4000"
     depends_on:
       - db
+    networks:
+      - default
+      - ollama-net
 
   db:
     image: postgres:15
@@ -30,3 +33,7 @@ services:
 
 volumes:
   db-data:
+
+networks:
+  ollama-net:
+    external: true
