@@ -108,12 +108,15 @@ router.post('/',
 
       console.log('Processing settings:', { llmUrl, llmEnabled, types: { llmUrl: typeof llmUrl, llmEnabled: typeof llmEnabled } });
 
-      if (typeof llmUrl === 'string') {
-        console.log('Updating LLM_URL');
+      // Use environment variable if available, otherwise use the provided URL
+      const effectiveUrl = process.env.OLLAMA_URL || llmUrl;
+
+      if (typeof llmUrl === 'string' || process.env.OLLAMA_URL) {
+        console.log('Updating LLM_URL with:', effectiveUrl);
         await prisma.setting.upsert({
           where: { key: 'LLM_URL' },
-          update: { value: llmUrl },
-          create: { key: 'LLM_URL', value: llmUrl }
+          update: { value: effectiveUrl },
+          create: { key: 'LLM_URL', value: effectiveUrl }
         });
       }
 

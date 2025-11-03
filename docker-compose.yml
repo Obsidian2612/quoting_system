@@ -6,18 +6,22 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    networks:
+      - default
 
   backend:
     build: ./server
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/quotes_db
+      - OLLAMA_URL=http://host.docker.internal:11434
     ports:
       - "4000:4000"
     depends_on:
       - db
     networks:
       - default
-      - ollama-net
+    extra_hosts:
+      - "host.docker.internal:192.168.1.251"
 
   db:
     image: postgres:15
