@@ -10,6 +10,8 @@ const QuoteBuilder: React.FC = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedServices, setSelectedServices] = useState<QuoteItem[]>([]);
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({});
+  const [brandOther, setBrandOther] = useState('');
+  const [useOtherBrand, setUseOtherBrand] = useState(false);
   const [error, setError] = useState('');
 
   // Fetch initial data
@@ -157,14 +159,120 @@ const QuoteBuilder: React.FC = () => {
                   <label className="label" htmlFor="make">
                     Make
                   </label>
-                  <input
-                    type="text"
+                  {/* Dropdown of major brands with an "Other" option */}
+                  <select
                     id="make"
                     className="input"
-                    value={newVehicle.make || ''}
-                    onChange={e => setNewVehicle({ ...newVehicle, make: e.target.value })}
+                    value={useOtherBrand ? 'Other' : (newVehicle.make || '')}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === 'Other') {
+                        setUseOtherBrand(true);
+                        setNewVehicle({ ...newVehicle, make: '' });
+                      } else {
+                        setUseOtherBrand(false);
+                        setBrandOther('');
+                        setNewVehicle({ ...newVehicle, make: v });
+                      }
+                    }}
                     required
-                  />
+                  >
+                    <option value="">Select brand</option>
+                    {/* common major brands list */}
+                    <option value="Toyota">Toyota</option>
+                    <option value="Ford">Ford</option>
+                    <option value="Chevrolet">Chevrolet</option>
+                    <option value="Honda">Honda</option>
+                    <option value="Nissan">Nissan</option>
+                    <option value="BMW">BMW</option>
+                    <option value="Mercedes-Benz">Mercedes-Benz</option>
+                    <option value="Volkswagen">Volkswagen</option>
+                    <option value="Hyundai">Hyundai</option>
+                    <option value="Kia">Kia</option>
+                    <option value="Audi">Audi</option>
+                    <option value="Subaru">Subaru</option>
+                    <option value="Mazda">Mazda</option>
+                    <option value="Other">Other</option>
+                  </select>
+
+                  {useOtherBrand && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        placeholder="Enter brand"
+                        className="input"
+                        value={brandOther}
+                        onChange={e => {
+                          setBrandOther(e.target.value);
+                          setNewVehicle({ ...newVehicle, make: e.target.value });
+                        }}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Autofill using configured LLM */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={async () => {
+                        const llmUrl = localStorage.getItem('LLM_URL') || '';
+                        const llmEnabled = localStorage.getItem('LLM_ENABLED') === 'true';
+                        if (!llmUrl || !llmEnabled) {
+                          setError('LLM not configured or not enabled. Set it in Admin > Settings.');
+                          return;
+                        }
+
+                        // Build a simple prompt; you can refine later
+                        const prompt = `Given the context: "I have a vehicle with limited info. Provide make, model, year (4-digit), and engine if possible. If unknown, return empty strings." Return JSON with keys make, model, year, engine.`;
+
+                        try {
+                          const res = await fetch(llmUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt })
+                          });
+
+                          if (!res.ok) {
+                            throw new Error('LLM request failed');
+                          }
+
+                          const data = await res.json();
+                          // Expect either { make, model, year, engine } or text with JSON
+                          let parsed = data;
+                          if (typeof data === 'string') {
+                            try {
+                              parsed = JSON.parse(data);
+                            } catch (e) {
+                              // ignore
+                            }
+                          }
+
+                          if (parsed.make) {
+                            setNewVehicle({
+                              ...newVehicle,
+                              make: parsed.make || newVehicle.make,
+                              model: parsed.model || newVehicle.model,
+                              year: parsed.year ? parseInt(parsed.year) : newVehicle.year,
+                              engine: parsed.engine || newVehicle.engine
+                            });
+                            setUseOtherBrand(false);
+                            setBrandOther('');
+                            setError('');
+                          } else {
+                            setError('LLM did not return vehicle data');
+                          }
+                        } catch (err) {
+                          setError('Failed to call LLM for autofill');
+                        }
+                      }}
+                    >
+                      Autofill with AI
+                    </button>
+
+                    <div className="text-sm text-gray-600">(Requires Admin &gt; Settings LLM URL)</div>
+                  </div>
                 </div>
 
                 <div>

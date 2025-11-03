@@ -7,13 +7,23 @@ import { useAuth } from '../contexts/AuthContext';
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'services' | 'suppliers' | 'quotes'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'suppliers' | 'quotes' | 'settings'>('services');
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [error, setError] = useState('');
   const [newService, setNewService] = useState({ name: '', category: '', prices: [] });
   const [newSupplier, setNewSupplier] = useState({ name: '', contactInfo: '' });
+  const [llmUrl, setLlmUrl] = useState('');
+  const [llmEnabled, setLlmEnabled] = useState(false);
+
+  useEffect(() => {
+    // Load settings from localStorage
+    const stored = localStorage.getItem('LLM_URL') || '';
+    const enabled = localStorage.getItem('LLM_ENABLED') === 'true';
+    setLlmUrl(stored);
+    setLlmEnabled(enabled);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -115,6 +125,18 @@ const AdminDashboard: React.FC = () => {
               `}
             >
               Quotes History
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={
+                `
+                py-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'settings'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              Settings
             </button>
           </nav>
         </div>
@@ -323,6 +345,67 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Settings</h2>
+
+          <div className="mb-6 max-w-md">
+            <label className="label" htmlFor="llmUrl">LLM Endpoint URL</label>
+            <input
+              id="llmUrl"
+              type="text"
+              className="input"
+              placeholder="https://internal-llm.local/api"
+              value={llmUrl}
+              onChange={e => setLlmUrl(e.target.value)}
+            />
+
+            <div className="flex items-center gap-4 mt-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={llmEnabled}
+                  onChange={e => setLlmEnabled(e.target.checked)}
+                />
+                <span>Enable LLM autofill</span>
+              </label>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  localStorage.setItem('LLM_URL', llmUrl);
+                  localStorage.setItem('LLM_ENABLED', llmEnabled ? 'true' : 'false');
+                  setError('');
+                }}
+              >
+                Save Settings
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setLlmUrl('');
+                  setLlmEnabled(false);
+                  localStorage.removeItem('LLM_URL');
+                  localStorage.removeItem('LLM_ENABLED');
+                }}
+              >
+                Reset
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mt-3">
+              When enabled, the Quote Builder's "Autofill with AI" button will POST a simple JSON
+              prompt to this URL. Ensure the endpoint accepts unauthenticated POSTs from the
+              client or proxy it through your backend if you need to keep it private.
+            </p>
           </div>
         </div>
       )}
