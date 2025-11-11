@@ -30,6 +30,9 @@ const AdminDashboard: React.FC = () => {
         const json = await res.json();
         setLlmUrl(json.llmUrl || '');
         setLlmEnabled(!!json.llmEnabled);
+        // Also store in localStorage so QuoteBuilder can access them
+        localStorage.setItem('LLM_URL', json.llmUrl || '');
+        localStorage.setItem('LLM_ENABLED', json.llmEnabled ? 'true' : 'false');
       } catch (err) {
         // ignore
       }
@@ -404,6 +407,9 @@ const AdminDashboard: React.FC = () => {
                       body: JSON.stringify({ llmUrl, llmEnabled })
                     });
                     if (!res.ok) throw new Error('Save failed');
+                    // Save to localStorage so QuoteBuilder can access them
+                    localStorage.setItem('LLM_URL', llmUrl);
+                    localStorage.setItem('LLM_ENABLED', llmEnabled ? 'true' : 'false');
                     setError('');
                   } catch (err) {
                     setError('Failed to save settings');
@@ -429,6 +435,9 @@ const AdminDashboard: React.FC = () => {
                     if (!res.ok) throw new Error('Reset failed');
                     setLlmUrl('');
                     setLlmEnabled(false);
+                    // Clear from localStorage as well
+                    localStorage.setItem('LLM_URL', '');
+                    localStorage.setItem('LLM_ENABLED', 'false');
                     setError('');
                   } catch (err) {
                     setError('Failed to reset settings');
